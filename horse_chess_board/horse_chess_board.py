@@ -22,6 +22,7 @@ class HourseTraveling:
         self.chess_board = np.zeros(shape=[row, col], dtype=np.int16)
         self.steps = []
         self.counts = 0
+        self.last_step = None
 
     def get_ava_pos(self, row, col):
         """
@@ -40,7 +41,7 @@ class HourseTraveling:
             new_row = row + move[0]
             new_col = col + move[1]
             if 0 <= new_row < self.rows and 0 <= new_col < self.cols and not self.chess_board[new_row][new_col]:
-                if (new_row, new_col) == self.init_pos and len(self.steps) != self.rows * self.cols - 1:
+                if (new_row, new_col) == self.last_step and len(self.steps) != self.rows * self.cols - 1:
                     # only allow returning to the initial position if all other positions have been visited
                     pass
                 else:
@@ -48,7 +49,7 @@ class HourseTraveling:
 
         return ava_pos
     
-    def set_init_pos(self, row, col):
+    def set_init_pos(self, row, col, last_row=None, last_col=None):
         """
         set the initial position of the horse on the chess board.
         :param row: initial row
@@ -57,6 +58,8 @@ class HourseTraveling:
         if 0 <= row < self.rows and 0 <= col < self.cols:
             self.counts = 0
             self.init_pos = (row, col)
+            if last_row is not None and last_col is not None:
+                self.last_step = (last_row, last_col)
             self.chess_board = np.zeros(shape=[self.rows, self.cols], dtype=np.int16)
             self.steps = []
             logger.info(f"initial position set to ({row}, {col})")
@@ -71,7 +74,7 @@ class HourseTraveling:
         :return: True if the horse has completed the chess board, False starting to recurisive next step
         """
         if self.counts == 0:
-            self.set_init_pos(row, col)
+            self.set_init_pos(row, col, last_row=row+1, last_col=col+3)
             self.counts += 1
         else:
             self.chess_board[row][col] = len(self.steps) + 1
@@ -100,7 +103,7 @@ class HourseTraveling:
 
 
     def is_complete(self,row, col):
-        if len(self.steps) == self.rows * self.cols and (row, col) == self.init_pos:                                                                 
+        if len(self.steps) == self.rows * self.cols and (row, col) == self.last_step:                                                                 
             logger.info(f'horse chess board is complete. steps: \n{self.steps}')
             return True
         return False
@@ -185,7 +188,11 @@ if __name__ == '__main__':
     col = 8
     chess_board = HourseTraveling(row, col)
     start_time = time.time()
-    chess_board.next_step(1, 2)
-    chess_board.draw_knight_tour(chess_board.steps, board_size=row)
+    chess_board.next_step(0, 0)
+    if chess_board.steps:
+        # Draw the knight's tour path
+        chess_board.draw_knight_tour(chess_board.steps, board_size=row)
+    else:
+        logger.info("No valid knight's tour path found.")
     end_time = time.time()
     logger.info(f'cost time: {end_time - start_time}')
