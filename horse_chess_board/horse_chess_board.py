@@ -6,22 +6,26 @@
 4. 遍历获取可以走的位置列表, 如果该位置为走过, 则访问(递归, 从第2步开始), 否则放弃位置
 5. 判断马是否完成任务.
 """
+from typing import Optional, Tuple
 from matplotlib import pyplot as plt
 import numpy as np
+from dataclasses import dataclass, field
 import time
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+
+
 class HourseTraveling:
-    def __init__(self, rows, cols):
-        self.rows = rows
-        self.cols = cols
+    def __init__(self, rows:int, cols:int):
+        self.rows:int = rows
+        self.cols:int = cols
         self.init_pos = None
         self.chess_board = np.zeros(shape=[row, col], dtype=np.int16)
         self.steps = []
-        self.counts = 0
+        self.counts:int = 0
         self.last_step = None
 
     def get_ava_pos(self, row, col):
@@ -49,7 +53,7 @@ class HourseTraveling:
 
         return ava_pos
     
-    def set_init_pos(self, row, col, last_row=None, last_col=None):
+    def set_init_pos(self, row:int, col:int, last_row=None, last_col=None):
         """
         set the initial position of the horse on the chess board.
         :param row: initial row
@@ -64,9 +68,28 @@ class HourseTraveling:
             self.steps = []
             logger.info(f"initial position set to ({row}, {col})")
         else:
-            raise ValueError("Initial position is out of bounds.")
-    
-    def next_step(self, row, col):
+            raise ValueError(f"Initial position is out of bounds. borad row: {self.rows}, col: {self.cols}. Given: ({row}, {col})")
+        
+
+    def traving_start(self, start_pos=Optional[Tuple], end_pos=None):
+        """
+        start the horse traveling path from a given start position to an end position.
+        :param start_pos: tuple (row, col) of the starting position
+        :param end_pos: tuple (row, col) of the ending position
+        :return: step_path: list of tuples representing the path taken by the horse
+        """
+        if start_pos is not None:
+            self.set_init_pos(start_pos[0], start_pos[1])
+        if end_pos is not None:
+            self.last_step = end_pos
+
+        if self.init_pos is None:
+            raise ValueError("Initial position must be set before starting the tour.")
+        
+        logger.info(f"Starting position: {self.init_pos}, Last step: {self.last_step}")
+        return self.next_step(self.init_pos[0], self.init_pos[1])
+
+    def next_step(self, row:int, col:int):
         """
         step to the next position (row, col) on the chess board, marking it as visited.
         :param row: next row to step
@@ -74,7 +97,7 @@ class HourseTraveling:
         :return: True if the horse has completed the chess board, False starting to recurisive next step
         """
         if self.counts == 0:
-            self.set_init_pos(row, col, last_row=row+1, last_col=col+3)
+            # self.set_init_pos(row, col)
             self.counts += 1
         else:
             self.chess_board[row][col] = len(self.steps) + 1
@@ -91,8 +114,6 @@ class HourseTraveling:
 
             for next_row, next_col in ava_pos:
                 logger.info(f'from position: ({row}, {col}), to next position: ({next_row}, {next_col})')
-                if (3, 2) == (next_row, next_col):
-                    logger.info(f'from position: ({row}, {col}), to next position: ({next_row}, {next_col})')
                 ava_pos = self.next_step(next_row, next_col)
                 if ava_pos:
                     return ava_pos[0], ava_pos[1]
@@ -103,11 +124,16 @@ class HourseTraveling:
 
 
     def is_complete(self,row, col):
+        """
+        check if the horse has completed the chess board.
+        :param row: current row
+        :param col: current col
+        :return: True if the horse has visited all squares, False otherwise
+        """
         if len(self.steps) == self.rows * self.cols and (row, col) == self.last_step:                                                                 
             logger.info(f'horse chess board is complete. steps: \n{self.steps}')
             return True
         return False
-    
 
 
     def draw_knight_tour(self, path, board_size=8):
@@ -175,8 +201,8 @@ def test_horseTravelingPath():
     row = 8
     col = 8
     chess_board = HourseTraveling(row, col)
-    chess_board.set_init_pos(1, 2)
-    chess_board.next_step(1, 2)
+    # chess_board.set_init_pos(1, 2)
+    chess_board.traving_start(1, 2)
     assert chess_board.is_complete(1, 2) == False, "The knight's tour should not be complete yet."
     
     # Check if the knight can return to the initial position after visiting all other squares
@@ -188,7 +214,7 @@ if __name__ == '__main__':
     col = 8
     chess_board = HourseTraveling(row, col)
     start_time = time.time()
-    chess_board.next_step(0, 0)
+    chess_board.traving_start(start_pos=(1, 2), end_pos=(1, 3))
     if chess_board.steps:
         # Draw the knight's tour path
         chess_board.draw_knight_tour(chess_board.steps, board_size=row)
