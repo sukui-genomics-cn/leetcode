@@ -135,8 +135,8 @@ class HourseTraveling:
             return True
         return False
 
-
-    def draw_knight_tour(self, path, board_size=8):
+    @staticmethod
+    def draw_knight_tour(path, board_size=8):
         """
         Visualize the knight's tour path on a chessboard.
         
@@ -214,7 +214,7 @@ if __name__ == '__main__':
     col = 8
     chess_board = HourseTraveling(row, col)
     start_time = time.time()
-    chess_board.traving_start(start_pos=(1, 2), end_pos=(1, 3))
+    chess_board.traving_start(start_pos=(1, 2), end_pos=(1, 2))
     if chess_board.steps:
         # Draw the knight's tour path
         chess_board.draw_knight_tour(chess_board.steps, board_size=row)
