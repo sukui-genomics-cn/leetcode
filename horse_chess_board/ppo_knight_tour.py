@@ -76,7 +76,7 @@ def train_with_sb3(continue_training=False, model_path=None):
     test_trained_model(model)
 
 def test_trained_model(model):
-    env = KnightsTourEnv(board_size=5, render_mode='human')
+    env = KnightsTourEnv(board_size=8, render_mode='human')
     obs, _ = env.reset()
     done = False
     
