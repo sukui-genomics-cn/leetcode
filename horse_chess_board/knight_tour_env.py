@@ -27,11 +27,18 @@ class KnightTourEnv:
         return self._get_state()
     
     def _get_state(self):
-        """返回当前状态的张量表示"""
-        state = np.zeros((1, self.board_size, self.board_size))
-        state[0, self.current_pos[0], self.current_pos[1]] = 2  # 当前位置
+        """改进后的状态表示"""
+        state = np.zeros((4, self.board_size, self.board_size))
+        # 通道0: 已访问位置
         for pos in self.visited:
-            state[0, pos[0], pos[1]] = 1  # 已访问位置
+            state[0, pos[0], pos[1]] = 1
+        # 通道1: 当前位置热图
+        state[1, self.current_pos[0], self.current_pos[1]] = 1
+        # 通道2: 步数归一化
+        state[2, :, :] = self.steps / (self.board_size**2 * 2)
+        # 通道3: 最近5步轨迹
+        for i, pos in enumerate(self.visited[-5:]):
+            state[3, pos[0], pos[1]] = 0.8 - i*0.15
         return torch.FloatTensor(state).to(self.device)
     
     def get_valid_moves(self):
@@ -66,15 +73,28 @@ class KnightTourEnv:
         self.board[new_pos] = 1
         self.steps += 1
         
-        # 计算奖励
-        if len(self.visited) == self.board_size ** 2:
-            reward = 100  # 完成全部访问
+
+        # 基础奖励
+        reward = 1.0
+        
+        # 鼓励访问新区域
+        if self.current_pos not in self.visited:
+            reward += 3.0
+            
+        # 动态调整系数
+        coverage = len(self.visited) / self.board_size**2
+        reward *= (1 + coverage**2)
+
+        # 完成奖励
+        if len(self.visited) == self.board_size**2:
+            reward += 100
             done = True
         else:
-            # 鼓励访问新位置，同时考虑移动的灵活性
-            valid_moves = self.get_valid_moves()
-            reward = 1 + 0.1 * len(valid_moves)  # 基础奖励+移动选择奖励
             done = False
+            
+        # 无效移动惩罚
+        if not self.get_valid_moves() and len(self.visited) < self.board_size**2:
+            reward -= 10 * (self.board_size**2 - len(self.visited))
         
         return self._get_state(), reward, done
     
