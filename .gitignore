@@ -1,0 +1,6 @@
+logs
+videos
+best_models
+eval_logs
+*.zip
+*.pt
