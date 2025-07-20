@@ -30,6 +30,7 @@ def count_coprime_in_range(n, low, high):
             cnt += 1
     return cnt
 
-# 计算 F(10^12)
-L = 15
-print(F(L))  # 结果需实际运行计算，数量级巨大但算法能高效执行
+if __name__ == "__main__":
+    # 计算 F(10^12)
+    L = 10**12
+    print(F(L))  # 结果需实际运行计算，数量级巨大但算法能高效执行

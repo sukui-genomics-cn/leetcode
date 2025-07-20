@@ -6,6 +6,7 @@
 4. 遍历获取可以走的位置列表, 如果该位置为走过, 则访问(递归, 从第2步开始), 否则放弃位置
 5. 判断马是否完成任务.
 """
+import argparse
 from typing import Optional, Tuple
 from matplotlib import pyplot as plt
 import numpy as np
@@ -18,12 +19,30 @@ logger = logging.getLogger(__name__)
 
 
 
+def parse():
+    parser = argparse.ArgumentParser(description='Knight\'s Tour Problem Solver')
+    
+    parser.add_argument('--size', type=int, default=8,
+                        help='Size of the chess board (default: 8)')
+    parser.add_argument('--start_row', type=int, default=0,
+                        help='Starting row position (default: 0)')
+    parser.add_argument('--start_col', type=int, default=0,
+                        help='Starting column position (default: 0)')
+    parser.add_argument('--end_row', type=int, default=7,
+                        help='Ending row position (default: 7)')
+    parser.add_argument('--end_col', type=int, default=7,
+                        help='Ending column position (default: 7)')
+    
+    args = parser.parse_args()
+    return args
+
 class HourseTraveling:
     def __init__(self, rows:int, cols:int):
+        assert rows == cols, f"rows and cols must be the same: {rows}, {cols}"
         self.rows:int = rows
         self.cols:int = cols
         self.init_pos = None
-        self.chess_board = np.zeros(shape=[row, col], dtype=np.int16)
+        self.chess_board = np.zeros(shape=[self.rows, self.cols], dtype=np.int16)
         self.steps = []
         self.counts:int = 0
         self.last_step = None
@@ -254,16 +273,26 @@ def test_horseTravelingPath():
     chess_board.steps.append((1, 2))
     assert chess_board.is_complete(1, 2) == True, "The knight's tour should be complete now."
 
-if __name__ == '__main__':
-    row = 25
-    col = 25
-    chess_board = HourseTraveling(row, col)
+
+def main():
+    args = parse()
+    logger.info(f"args: {args}")
+    hourse_trave = HourseTraveling(
+        rows=args.size,
+        cols=args.size,
+    )
     start_time = time.time()
-    chess_board.traving_start(start_pos=(11, 11), end_pos=(24, 24))
-    if chess_board.steps:
+    hourse_trave.traving_start(
+        start_pos=(args.start_row, args.start_col),
+        end_pos=(args.end_row, args.end_col)
+    )
+    if hourse_trave.steps:
         # Draw the knight's tour path
-        chess_board.draw_knight_tour(chess_board.steps, board_size=row)
+        hourse_trave.draw_knight_tour(hourse_trave.steps, board_size=args.size)
     else:
         logger.info("No valid knight's tour path found.")
     end_time = time.time()
     logger.info(f'cost time: {end_time - start_time}')
+
+if __name__ == '__main__':
+    main()
