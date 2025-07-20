@@ -11,8 +11,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import VecVideoRecorder, DummyVecEnv
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.policies import ActorCriticPolicy, ActorCriticCnnPolicy
-from stable_baselines3.common.vec_env import VecTransposeImage
+from stable_baselines3.common.policies import ActorCriticPolicy
 from stable_baselines3.common.distributions import (
     BernoulliDistribution,
     CategoricalDistribution,
@@ -26,7 +25,7 @@ from stable_baselines3.common.distributions import (
 from knight_tour_env_gym import KnightsTourEnv
 
 
-class CustomActorCriticPolicy(ActorCriticCnnPolicy):
+class CustomActorCriticPolicy(ActorCriticPolicy):
 
     def forward(self, obs: th.Tensor, deterministic: bool = False) -> tuple[th.Tensor, th.Tensor, th.Tensor]:
         """
@@ -94,11 +93,11 @@ class CustomActorCriticPolicy(ActorCriticCnnPolicy):
         ], device=obs.device)
         act_nums = knight_moves.shape[0]
         batch_size = obs.shape[0]
-        board_size = obs.shape[-2]
+        board_size = obs.shape[-1]
         penalty_mask = th.zeros(batch_size, act_nums, device=obs.device)
         
         # 获取当前骑士位置
-        current_pos = th.argmax(obs[..., 1].flatten(start_dim=1), dim=1)
+        current_pos = th.argmax(obs[:, 1].flatten(start_dim=1), dim=1)
         current_x = current_pos // board_size
         current_y = current_pos % board_size
         current_pos = th.stack([current_x, current_y], dim=1)
@@ -117,26 +116,24 @@ class CustomActorCriticPolicy(ActorCriticCnnPolicy):
                     continue
                     
                 # 检查是否已访问
-                if obs[b, int(x), int(y), 0] > 0.5:
+                if obs[b, 0, int(x), int(y)] > 0.5:
                     penalty_mask[b, a] = 1e10  # 使非法动作概率接近0
                     
         return penalty_mask
 
 
 def train_with_sb3(continue_training=False, model_path=None):
-    log_dir = "./logs/ppo_knight_tour_cutompolicy_8x8"
-    video_dir = "./videos/ppo_knight_tour_cutompolicy_8x8"
+    log_dir = "./logs/ppo_knight_tour_cutompolicy_mlp_8x8_0720"
+    video_dir = "./videos/ppo_knight_tour_cutompolicy_mlp_8x8_0720"
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(video_dir, exist_ok=True)
 
     # 创建并行环境
     env = make_vec_env(
-        lambda: Monitor(KnightsTourEnv(board_size=64), log_dir),
+        lambda: Monitor(KnightsTourEnv(board_size=8), log_dir),
         n_envs=4,
-        seed=42,
-        # vec_env_cls=VecTransposeImage  # 自动处理通道顺序
+        seed=42
     )
-    env = VecTransposeImage(env)  # 再添加转置包装
     
     # 添加视频录制（每10000步录制一次，最多录制100步）
     env = VecVideoRecorder(
@@ -144,7 +141,7 @@ def train_with_sb3(continue_training=False, model_path=None):
         video_dir,
         record_video_trigger=lambda x: x % 100000 == 0,  # 录制频率
         video_length=65,  # 最大录制长度
-        name_prefix="ppo_knight_tour_cutompolicy_8x8"
+        name_prefix="ppo_knight_tour_cutompolicy_mlp_8x8_0720"
     )
 
     # 初始化PPO算法
@@ -189,19 +186,19 @@ def train_with_sb3(continue_training=False, model_path=None):
     # 训练模型
     model.learn(
         total_timesteps=1000000,
-        tb_log_name="ppo_knight_tour_cutompolicy_8x8",
+        tb_log_name="ppo_knight_tour_cutompolicy_mlp_8x8_0720",
         callback=eval_callback,  # 包含自动保存功能
         reset_num_timesteps=not continue_training  # 是否重置步数计数器
         )
     
     # 保存模型
-    model.save("ppo_knight_tour_cutompolicy_8x8")
+    model.save("ppo_knight_tour_cutompolicy_mlp_8x8_0720")
     
     # 测试训练好的模型
     test_trained_model(model)
 
 def test_trained_model(model):
-    env = KnightsTourEnv(board_size=256, render_mode='human')
+    env = KnightsTourEnv(board_size=8, render_mode='human')
     obs, _ = env.reset()
     done = False
     
@@ -214,7 +211,7 @@ def test_trained_model(model):
     env.close()
 
 if __name__ == "__main__":
-    train_with_sb3(continue_training=False, model_path="ppo_knight_tour_cutompolicy_8x8")
+    train_with_sb3(continue_training=True, model_path="ppo_knight_tour_cutompolicy_8x8_0720_best")
     print("Training complete and model saved.")
     print("You can now test the trained model by running the script again.")
-    test_trained_model(PPO.load("ppo_knight_tour_cutompolicy_8x8"))
+    test_trained_model(PPO.load("ppo_knight_tour_cutompolicy_mlp_8x8_0720"))
