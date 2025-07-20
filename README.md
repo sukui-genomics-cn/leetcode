@@ -38,6 +38,7 @@ This will test the custom Gym environment for the Knight's Tour problem with ran
 
 Install dependencies using:
 ```bash
+git clone -b release https://github.com/sukui-genomics-cn/leetcode.git
 pip install -r requirements.txt
 ```
 
