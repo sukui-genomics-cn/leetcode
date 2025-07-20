@@ -2,33 +2,45 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 import matplotlib.pyplot as plt
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, List
+
 
 class KnightsTourEnv(gym.Env):
+    """Custom environment for solving the Knight's Tour problem.
+    
+    The Knight's Tour is a sequence of moves by a knight on a chessboard
+    such that the knight visits every square exactly once.
+    """
     metadata = {'render_modes': ['human', 'rgb_array'], 'render_fps': 2}
     
-    def __init__(self, board_size=8, render_mode: Optional[str] = "rgb_array"):
+    def __init__(self, board_size: int = 8, render_mode: Optional[str] = "rgb_array"):
+        """Initialize the Knight's Tour environment.
+        
+        Args:
+            board_size: Size of the chessboard (default 8x8)
+            render_mode: Rendering mode ('human' or 'rgb_array')
+        """
         super().__init__()
         self.board_size = board_size
         self.render_mode = render_mode
         
-        # 定义动作空间 (8种可能的骑士移动)
+        # Action space: 8 possible knight moves
         self.action_space = spaces.Discrete(8)
         
-        # 定义观察空间 (4通道的棋盘表示)
+        # Observation space: 5-channel board representation
         self.observation_space = spaces.Box(
             low=0, high=1, 
             shape=(5, board_size, board_size),
             dtype=np.float32
         )
         
-        # 骑士的8种可能移动 (国际象棋中马的走法)
+        # Knight's possible moves (dx, dy)
         self.knight_moves = [
             (2, 1), (1, 2), (-1, 2), (-2, 1),
             (-2, -1), (-1, -2), (1, -2), (2, -1)
         ]
         
-        # 初始化状态变量
+        # Initialize state variables
         self.board = None
         self.current_pos = None
         self.visited = None
@@ -36,9 +48,15 @@ class KnightsTourEnv(gym.Env):
         self.visited_order = None
         
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None) -> Tuple[np.ndarray, dict]:
+        """Reset the environment to initial state.
+        
+        Returns:
+            observation: Initial board observation
+            info: Additional environment information
+        """
         super().reset(seed=seed)
         
-        # 初始化棋盘状态
+        # Initialize board state
         self.board = np.zeros((self.board_size, self.board_size))
         self.current_pos = (
             self.np_random.integers(0, self.board_size),
@@ -48,31 +66,39 @@ class KnightsTourEnv(gym.Env):
         self.visited_order = {self.current_pos: 1}
         self.steps = 0
         
-        # 初始渲染
         if self.render_mode == 'human':
             self.render()
             
         return self._get_obs(), self._get_info()
     
     def _get_obs(self) -> np.ndarray:
-        """获取当前观察状态 (4通道表示)"""
+        """Get current observation as multi-channel array.
+        
+        Returns:
+            ndarray: 5-channel observation array
+                [0] Visited positions
+                [1] Current position
+                [2] Normalized step count
+                [3] Recent move trajectory
+                [4] Valid next moves
+        """
         obs = np.zeros((5, self.board_size, self.board_size))
         
-        # 通道0: 已访问位置
+        # Channel 0: Visited positions
         for pos in self.visited:
             obs[0, pos[0], pos[1]] = 1
             
-        # 通道1: 当前位置热图
+        # Channel 1: Current position
         obs[1, self.current_pos[0], self.current_pos[1]] = 1
         
-        # 通道2: 步数归一化
+        # Channel 2: Normalized step count
         obs[2, :, :] = self.steps / (self.board_size**2 * 2)
         
-        # 通道3: 最近5步轨迹
+        # Channel 3: Last 5 moves
         for i, pos in enumerate(self.visited[-5:]):
             obs[3, pos[0], pos[1]] = 0.8 - i * 0.15
 
-        # 通道4: 下一步的合法移动
+        # Channel 4: Valid next moves
         valid_moves = self._get_valid_moves()
         for move in valid_moves:
             new_pos = (
@@ -80,12 +106,15 @@ class KnightsTourEnv(gym.Env):
                 self.current_pos[1] + self.knight_moves[move][1]
             )
             obs[4, new_pos[0], new_pos[1]] = 1
-
             
         return obs.astype(np.float32)
     
-    def _get_info(self) -> dict:
-        """获取环境信息"""
+    def _get_info(self) -> Dict:
+        """Get additional environment information.
+        
+        Returns:
+            dict: Contains current position, coverage, and valid moves
+        """
         return {
             'current_position': self.current_pos,
             'visited_count': len(self.visited),
@@ -93,8 +122,12 @@ class KnightsTourEnv(gym.Env):
             'valid_moves': self._get_valid_moves()
         }
     
-    def _get_valid_moves(self) -> list:
-        """获取当前合法动作索引"""
+    def _get_valid_moves(self) -> List[int]:
+        """Get indices of currently valid moves.
+        
+        Returns:
+            list: Indices of valid moves from current position
+        """
         valid_moves = []
         for i, move in enumerate(self.knight_moves):
             new_pos = (
@@ -108,14 +141,25 @@ class KnightsTourEnv(gym.Env):
         return valid_moves
     
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, dict]:
-        """执行一步动作"""
+        """Execute one environment step.
+        
+        Args:
+            action: Move index to execute
+            
+        Returns:
+            observation: New board state
+            reward: Step reward
+            terminated: Episode termination flag
+            truncated: Early truncation flag
+            info: Additional environment info
+        """
         move = self.knight_moves[action]
         new_pos = (
             self.current_pos[0] + move[0],
             self.current_pos[1] + move[1]
         )
         
-        # 检查移动是否有效
+        # Check for invalid move
         if not (0 <= new_pos[0] < self.board_size and 
                 0 <= new_pos[1] < self.board_size):
             return self._get_obs(), -10, True, False, self._get_info()
@@ -123,49 +167,46 @@ class KnightsTourEnv(gym.Env):
         if new_pos in self.visited:
             return self._get_obs(), -5, True, False, self._get_info()
         
-        # 更新状态
+        # Update state
         self.current_pos = new_pos
         self.visited.append(new_pos)
         self.visited_order[new_pos] = len(self.visited)
         self.steps += 1
         
-        # 计算奖励
         reward = self._calculate_reward()
-        
-        # 检查终止条件
         terminated = len(self.visited) == self.board_size**2
-        truncated = False  # 可以设置最大步数限制
+        truncated = False
         
-        # 渲染
         if self.render_mode == 'human':
             self.render()
             
         return self._get_obs(), reward, terminated, truncated, self._get_info()
     
     def _calculate_reward(self) -> float:
-        """计算奖励值"""
-        # 基础奖励
-        reward = 1.0
+        """Calculate step reward.
         
-        # 鼓励访问新区域
+        Returns:
+            float: Reward value combining:
+                - Base move reward
+                - Coverage bonus
+                - Valid move options bonus
+                - Completion bonus
+        """
+        reward = 1.0
         coverage = len(self.visited) / self.board_size**2
         reward += coverage * 5.0
 
-        # # 下一步的合法移动数量奖励
         valid_moves = self._get_valid_moves()
         if valid_moves:
             reward += len(valid_moves) * 0.5
         
-        # 完成奖励
         if len(self.visited) == self.board_size**2:
             reward += 100
             
-        # 无效移动惩罚 (提前在step中处理)
-        
         return reward
     
     def render(self):
-        """必须实现render方法"""
+        """Render current board state."""
         if self.render_mode == "rgb_array":
             return self._render_frame()
         elif self.render_mode == "human":
@@ -173,32 +214,33 @@ class KnightsTourEnv(gym.Env):
             return None
 
     def _render_frame(self):
-        """渲染当前棋盘状态"""
+        """Generate visualization frame."""
         if self.render_mode is None:
             return
             
-        # 创建画布
+        # Create board image
         img = np.zeros((self.board_size, self.board_size, 3))
         
-        # 绘制棋盘背景
+        # Draw checkerboard pattern
         for i in range(self.board_size):
             for j in range(self.board_size):
                 if (i + j) % 2 == 0:
-                    img[i, j] = [1.0, 0.9, 0.8]  # 浅色格子
+                    img[i, j] = [1.0, 0.9, 0.8]  # Light squares
                 else:
-                    img[i, j] = [0.5, 0.3, 0.1]  # 深色格子
+                    img[i, j] = [0.5, 0.3, 0.1]  # Dark squares
         
-        # 标记已访问的位置
+        # Mark visited positions
         for pos in self.visited:
-            img[pos[0], pos[1]] = [0.2, 0.6, 0.2]  # 绿色
+            img[pos[0], pos[1]] = [0.2, 0.6, 0.2]  # Green
             
-        # 标记当前位置
-        img[self.current_pos[0], self.current_pos[1]] = [0.8, 0.2, 0.2]  # 红色
+        # Mark current position
+        img[self.current_pos[0], self.current_pos[1]] = [0.8, 0.2, 0.2]  # Red
         
-        # 绘制移动序号
+        # Create figure
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.imshow(img)
         
+        # Add move numbers
         for pos, order in self.visited_order.items():
             ax.text(pos[1], pos[0], str(order), 
                    ha='center', va='center', 
@@ -209,7 +251,7 @@ class KnightsTourEnv(gym.Env):
         ax.set_yticks([])
         
         if self.render_mode == 'human':
-            plt.pause(0.5)  # 控制渲染速度
+            plt.pause(0.5)
             plt.close()
         else:
             fig.canvas.draw()
@@ -218,33 +260,19 @@ class KnightsTourEnv(gym.Env):
             plt.close()
             return img
     
-
     def close(self):
-        """关闭环境"""
+        """Clean up environment resources."""
         plt.close('all')
-        if hasattr(self, 'render_window'):
-            import pygame
-            pygame.display.quit()
-            pygame.quit()
 
-    # 添加wrapper属性访问支持
-    def get_wrapper_attr(self, name):
-        """支持wrapper属性访问"""
-        if hasattr(self, name):
-            return getattr(self, name)
-        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
 def test_environment():
-    # 创建环境
+    """Test the Knight's Tour environment with random actions."""
     env = KnightsTourEnv(board_size=5, render_mode='human')
-    
-    # 测试随机策略
     obs, info = env.reset()
     done = False
     total_reward = 0
     
     while not done:
-        # 随机选择合法动作
         valid_moves = info['valid_moves']
         if not valid_moves:
             print("No valid moves left!")
@@ -258,6 +286,7 @@ def test_environment():
     print(f"Total reward: {total_reward}")
     print(f"Coverage: {info['coverage']:.1%}")
     env.close()
+
 
 if __name__ == "__main__":
     test_environment()
