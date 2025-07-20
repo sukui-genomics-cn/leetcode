@@ -163,7 +163,7 @@ class HourseTraveling:
                 if ava_pos:
                     return ava_pos[0], ava_pos[1]
                 else:
-                    logger.info(f'recursive backtracking: ({row}, {col})')
+                    # logger.info(f'recursive backtracking: ({row}, {col})')
                     self.chess_board[next_row][next_col] = False
                     self.steps.pop()
 
@@ -255,11 +255,11 @@ def test_horseTravelingPath():
     assert chess_board.is_complete(1, 2) == True, "The knight's tour should be complete now."
 
 if __name__ == '__main__':
-    row = 8
-    col = 8
+    row = 25
+    col = 25
     chess_board = HourseTraveling(row, col)
     start_time = time.time()
-    chess_board.traving_start(start_pos=(3, 4), end_pos=(4, 3))
+    chess_board.traving_start(start_pos=(11, 11), end_pos=(24, 24))
     if chess_board.steps:
         # Draw the knight's tour path
         chess_board.draw_knight_tour(chess_board.steps, board_size=row)

@@ -123,8 +123,8 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
 
 
 def train_with_sb3(continue_training=False, model_path=None):
-    log_dir = "./logs/ppo_knight_tour_cutompolicy_mlp_8x8_0720"
-    video_dir = "./videos/ppo_knight_tour_cutompolicy_mlp_8x8_0720"
+    log_dir = "./logs/ppo_knight_tour_cutompolicy_mlp_8x8_0720_v2"
+    video_dir = "./videos/ppo_knight_tour_cutompolicy_mlp_8x8_0720_v2"
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(video_dir, exist_ok=True)
 
@@ -141,7 +141,7 @@ def train_with_sb3(continue_training=False, model_path=None):
         video_dir,
         record_video_trigger=lambda x: x % 100000 == 0,  # 录制频率
         video_length=65,  # 最大录制长度
-        name_prefix="ppo_knight_tour_cutompolicy_mlp_8x8_0720"
+        name_prefix="ppo_knight_tour_cutompolicy_mlp_8x8_0720_v2"
     )
 
     # 初始化PPO算法
@@ -185,14 +185,14 @@ def train_with_sb3(continue_training=False, model_path=None):
     
     # 训练模型
     model.learn(
-        total_timesteps=1000000,
-        tb_log_name="ppo_knight_tour_cutompolicy_mlp_8x8_0720",
+        total_timesteps=10_000_000,
+        tb_log_name="ppo_knight_tour_cutompolicy_mlp_8x8_0720_v2",
         callback=eval_callback,  # 包含自动保存功能
         reset_num_timesteps=not continue_training  # 是否重置步数计数器
         )
     
     # 保存模型
-    model.save("ppo_knight_tour_cutompolicy_mlp_8x8_0720")
+    model.save("ppo_knight_tour_cutompolicy_mlp_8x8_0720_v2")
     
     # 测试训练好的模型
     test_trained_model(model)
@@ -214,4 +214,4 @@ if __name__ == "__main__":
     train_with_sb3(continue_training=True, model_path="ppo_knight_tour_cutompolicy_mlp_8x8_0720")
     print("Training complete and model saved.")
     print("You can now test the trained model by running the script again.")
-    test_trained_model(PPO.load("ppo_knight_tour_cutompolicy_mlp_8x8_0720"))
+    test_trained_model(PPO.load("ppo_knight_tour_cutompolicy_mlp_8x8_0720_v2"))
