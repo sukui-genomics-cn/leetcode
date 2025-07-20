@@ -150,6 +150,11 @@ class KnightsTourEnv(gym.Env):
         # 鼓励访问新区域
         coverage = len(self.visited) / self.board_size**2
         reward += coverage * 5.0
+
+        # # 下一步的合法移动数量奖励
+        valid_moves = self._get_valid_moves()
+        if valid_moves:
+            reward += len(valid_moves) * 0.5
         
         # 完成奖励
         if len(self.visited) == self.board_size**2:

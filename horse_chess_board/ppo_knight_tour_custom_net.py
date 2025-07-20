@@ -211,7 +211,7 @@ def test_trained_model(model):
     env.close()
 
 if __name__ == "__main__":
-    train_with_sb3(continue_training=True, model_path="ppo_knight_tour_cutompolicy_8x8_0720_best")
+    train_with_sb3(continue_training=True, model_path="ppo_knight_tour_cutompolicy_mlp_8x8_0720")
     print("Training complete and model saved.")
     print("You can now test the trained model by running the script again.")
     test_trained_model(PPO.load("ppo_knight_tour_cutompolicy_mlp_8x8_0720"))

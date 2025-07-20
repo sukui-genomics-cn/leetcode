@@ -27,6 +27,7 @@ class HourseTraveling:
         self.steps = []
         self.counts:int = 0
         self.last_step = None
+        self.ava_last_step = []
 
     def get_ava_pos(self, row, col):
         """
@@ -48,6 +49,11 @@ class HourseTraveling:
                 if (new_row, new_col) == self.last_step and len(self.steps) != self.rows * self.cols - 1:
                     # only allow returning to the initial position if all other positions have been visited
                     pass
+                elif len(self.steps) == self.rows * self.cols - 2:
+                    if (new_row, new_col) in self.ava_last_step:
+                        ava_pos.append((new_row, new_col))
+                    else:
+                        pass
                 else:
                     ava_pos.append((new_row, new_col))
 
@@ -86,8 +92,47 @@ class HourseTraveling:
         if self.init_pos is None:
             raise ValueError("Initial position must be set before starting the tour.")
         
-        logger.info(f"Starting position: {self.init_pos}, Last step: {self.last_step}")
+        if self.init_pos == self.last_step:
+            logger.info(f"start pos and stop pos is same: start: {self.init_pos}, stop: {self.last_step}")
+        else:
+            logger.info(f"start and stop is diff, start: {self.init_pos}, stop: {self.last_step}")
+            # self.steps.append(self.init_pos)
+            self.counts += 1
+
+        # get ava pos at last step
+        self.ava_last_step = self.get_ava_pos(self.last_step[0], self.last_step[1])
+
+        # logger.info(f"Starting position: {self.init_pos}, Last step: {self.last_step}")
         return self.next_step(self.init_pos[0], self.init_pos[1])
+
+    
+    def sort_ava_pos_recursive(self, ava_pos: list, depth: int = 1, ascending: bool = True) -> list:
+        """
+        根据多层可访问位置数量排序当前位置（支持自定义深度和排序方向）
+        
+        参数:
+            ava_pos: 当前可选的移动位置列表 [(x1,y1), (x2,y2), ...]
+            depth: 递归计算层数（默认2层：当前+下一层）
+            ascending: 是否升序排序（True按Warnsdorff规则，False则反向）
+        
+        返回:
+            排序后的位置列表
+        """
+        def calculate_ava_score(pos, current_depth):
+            """递归计算位置得分"""
+            if current_depth == 0:
+                return 0
+            ava = self.get_ava_pos(pos[0], pos[1])
+            return len(ava) + sum(calculate_ava_score(p, current_depth-1) for p in ava)
+
+        # 计算每个位置的总分
+        pos_scores = [(pos, calculate_ava_score(pos, depth)) for pos in ava_pos]
+        
+        # 根据参数决定排序方向
+        reverse_sort = not ascending
+        sorted_pos = sorted(pos_scores, key=lambda x: x[1], reverse=reverse_sort)
+        
+        return [pos for pos, _ in sorted_pos]
 
     def next_step(self, row:int, col:int):
         """
@@ -110,10 +155,10 @@ class HourseTraveling:
         else:
             
             ava_pos = self.get_ava_pos(row, col)
-            ava_pos = sorted(ava_pos, key=lambda pos: len(self.get_ava_pos(pos[0], pos[1])), reverse=False)
-
+            # ava_pos = sorted(ava_pos, key=lambda pos: len(self.get_ava_pos(pos[0], pos[1])), reverse=False)
+            ava_pos = self.sort_ava_pos_recursive(ava_pos, depth = 3)
             for next_row, next_col in ava_pos:
-                logger.info(f'from position: ({row}, {col}), to next position: ({next_row}, {next_col})')
+                # logger.info(f'from position: ({row}, {col}), to next position: ({next_row}, {next_col})')
                 ava_pos = self.next_step(next_row, next_col)
                 if ava_pos:
                     return ava_pos[0], ava_pos[1]
@@ -214,7 +259,7 @@ if __name__ == '__main__':
     col = 8
     chess_board = HourseTraveling(row, col)
     start_time = time.time()
-    chess_board.traving_start(start_pos=(1, 2), end_pos=(1, 2))
+    chess_board.traving_start(start_pos=(3, 4), end_pos=(4, 3))
     if chess_board.steps:
         # Draw the knight's tour path
         chess_board.draw_knight_tour(chess_board.steps, board_size=row)
