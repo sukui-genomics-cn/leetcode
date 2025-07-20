@@ -17,9 +17,9 @@ class KnightsTourEnv(gym.Env):
         
         # 定义观察空间 (4通道的棋盘表示)
         self.observation_space = spaces.Box(
-            low=0, high=1, 
-            shape=(4, board_size, board_size),
-            dtype=np.float32
+            low=0, high=255, 
+            shape=(board_size, board_size, 3),
+            dtype=np.uint8
         )
         
         # 骑士的8种可能移动 (国际象棋中马的走法)
@@ -56,21 +56,30 @@ class KnightsTourEnv(gym.Env):
     
     def _get_obs(self) -> np.ndarray:
         """获取当前观察状态 (4通道表示)"""
-        obs = np.zeros((4, self.board_size, self.board_size))
+        obs = np.zeros((self.board_size, self.board_size, 3))
         
         # 通道0: 已访问位置
         for pos in self.visited:
-            obs[0, pos[0], pos[1]] = 1
-            
-        # 通道1: 当前位置热图
-        obs[1, self.current_pos[0], self.current_pos[1]] = 1
+            obs[pos[0], pos[1], 0] = 255
         
+        # 通道1: 当前位置热图
+        obs[self.current_pos[0], self.current_pos[1], 1] = 255
+            
         # 通道2: 步数归一化
-        obs[2, :, :] = self.steps / (self.board_size**2 * 2)
+        obs[:, :, 2] = int(self.steps / (self.board_size**2 * 2)*255)
         
         # 通道3: 最近5步轨迹
         for i, pos in enumerate(self.visited[-5:]):
-            obs[3, pos[0], pos[1]] = 0.8 - i * 0.15
+            obs[pos[0], pos[1], 1] = int((0.2 - i * 0.15)*128)
+
+        # # 通道4: 下一步的合法移动
+        # valid_moves = self._get_valid_moves()
+        # for move in valid_moves:
+        #     new_pos = (
+        #         self.current_pos[0] + self.knight_moves[move][0],
+        #         self.current_pos[1] + self.knight_moves[move][1]
+        #     )
+        #     obs[4, new_pos[0], new_pos[1]] = 1
             
         return obs.astype(np.float32)
     
@@ -139,11 +148,23 @@ class KnightsTourEnv(gym.Env):
         
         # 鼓励访问新区域
         coverage = len(self.visited) / self.board_size**2
-        reward += coverage * 2.0
+        reward += coverage * self.board_size**2
+
+        # # 下一步的合法移动数量奖励
+        # valid_moves = self._get_valid_moves()
+        # if valid_moves:
+        #     reward += len(valid_moves) * 0.5
         
         # 完成奖励
         if len(self.visited) == self.board_size**2:
+            reward += 2000
+        elif len(self.visited) > self.board_size**2*0.7 and len(self.visited) < self.board_size**2 *0.8:
+            reward += 25
+        elif len(self.visited) > self.board_size**2*0.8 and len(self.visited) < self.board_size**2 *0.9:
+            reward += 50
+        elif len(self.visited) >= self.board_size**2:
             reward += 100
+
             
         # 无效移动惩罚 (提前在step中处理)
         

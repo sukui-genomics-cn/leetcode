@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         
         {
             "name": "Python Debugger: Current File with Arguments",
@@ -12,6 +13,20 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": "${command:pickArgs}"
+        },{
+            "name": "Python: Train Knight's Tour PPO",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/horse_chess_board/ppo_knight_tour_custom_net.py",
+            "args": [],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}",
+                "CUDA_VISIBLE_DEVICES": "0"  // 指定使用的GPU
+            },
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "postDebugTask": "notify-complete"  // 可选：调试完成后通知
         }
     ]
 }

@@ -4,3 +4,5 @@ best_models
 eval_logs
 *.zip
 *.pt
+__pycache__
+*.pyc
