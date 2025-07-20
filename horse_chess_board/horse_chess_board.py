@@ -39,6 +39,7 @@ def parse():
 class HourseTraveling:
     def __init__(self, rows:int, cols:int):
         assert rows == cols, f"rows and cols must be the same: {rows}, {cols}"
+        assert rows >= 8 , f"rows and cols must > 7"
         self.rows:int = rows
         self.cols:int = cols
         self.init_pos = None
