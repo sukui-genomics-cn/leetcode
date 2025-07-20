@@ -1,0 +1,3 @@
+numpy
+matplotlib
+stable_baselines3
