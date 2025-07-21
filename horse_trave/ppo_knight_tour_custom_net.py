@@ -211,6 +211,8 @@ if __name__ == "__main__":
     # Train and test model
     model = train_with_sb3(
         continue_training=True,
-        model_path="ppo_knight_tour_cutompolicy_mlp_8x8_0720"
+        model_path="/home/sukui/03.project/02.RL/leetcode/ckpts/best_model",
+        output_dir="/home/sukui/03.project/02.RL/leetcode/outputs",
+        work_name="ppo_knight_tour_cutompolicy_mlp_8x8_0720_v3"
     )
     test_trained_model(model)

@@ -6,3 +6,5 @@ eval_logs
 *.pt
 __pycache__
 *.pyc
+ckpts
+outputs

@@ -260,6 +260,14 @@ class KnightsTourEnv(gym.Env):
             plt.close()
             return img
     
+    def get_wrapper_attr(self, name: str):
+        """get attr from wrapper"""
+        if hasattr(self, name):
+            return getattr(self, name)
+        if hasattr(self, 'env'):
+            return self.env.get_wrapper_attr(name)
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
     def close(self):
         """Clean up environment resources."""
         plt.close('all')
